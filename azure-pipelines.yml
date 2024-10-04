@@ -1,0 +1,48 @@
+trigger:
+  branches:
+    include:
+      - master  # Cambia 'main' por la rama principal de tu repositorio
+
+pool:
+  vmImage: 'ubuntu-latest' 
+
+steps:
+- task: UseNode@1
+  inputs:
+    versionSpec: '14.x'
+  displayName: 'Instalar Node.js'
+
+- task: Npm@1
+  inputs:
+    command: 'install'
+
+- script: |
+    curl -sS https://getcomposer.org/installer | php
+    mv composer.phar /usr/local/bin/composer
+  displayName: 'Instalar Composer'
+
+- script: |
+    composer install --prefer-dist --no-ansi --no-interaction --no-progress --no-scripts --no-autoloader
+    composer dump-autoload --optimize
+  displayName: 'Instalar dependencias de PHP'
+
+- script: |
+    rm -rf node_modules
+    npm cache clean --force
+    npm install --save-exact
+  displayName: 'Instalar y compilar dependencias de frontend'
+
+- script: |
+    npm install 
+    npm run build
+  displayName: 'instalar Breeze'
+
+- script: |
+    php artisan cache:clear
+    php artisan config:clear
+    php artisan view:clear
+    php artisan migrate
+    npm run build
+    php artisan key:generate
+  displayName: 'generar clave'
+
